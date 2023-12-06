@@ -221,6 +221,49 @@ class ExpectimaxAgent(MultiAgentSearchAgent):
     def __init__(self, *args, **kwargs) -> None:
         super().__init__(**kwargs)
 
+    
+    def expectValue(self, state, depth, currentAgent):
+        value = 0
+        legalMoves = state.getLegalActions(currentAgent)
+        # We take average on all the legal moves
+        legalMoveProbability = 1.0 / len(legalMoves)
+        for action in legalMoves:
+            successor = state.generateSuccessor(currentAgent, action)
+            successorValue = self.value(successor, depth, currentAgent+1)
+            value += legalMoveProbability * successorValue
+        return value
+
+
+    def maxValue(self, state, depth, currentAgent):
+        value = float("-inf")
+        legalMoves = state.getLegalActions(currentAgent)
+        for action in legalMoves:
+            successor = state.generateSuccessor(currentAgent, action)
+            successorValue = self.value(successor, depth, currentAgent+1)
+            value = max(successorValue, value)
+
+            # In Expectimax, we should store the first action that made us reach
+            # the best possible state (since minimax only returns the best value!)
+            if value == successorValue and depth == 1:
+                self.action = action
+        return value
+
+
+    def value(self, state, depth=0, currentAgent=0):
+        # Ensuring that agent's index is not out of range
+        currentAgent = currentAgent % state.getNumAgents()
+
+        # We reach a terminal state or max depth
+        if depth == self.depth or state.isGameFinished():
+            return self.evaluationFunction(state)
+
+        # Actual Minimax Search
+        if currentAgent == self.index: # It's my turn
+            return self.maxValue(state, depth+1, currentAgent)
+        else:
+            return self.expectValue(state, depth+1, currentAgent)
+
+
     def getAction(self, gameState):
         """
         Returns the expectimax action using self.depth and self.evaluationFunction
@@ -229,7 +272,8 @@ class ExpectimaxAgent(MultiAgentSearchAgent):
         legal moves.
         """
         "*** YOUR CODE HERE ***"
-        util.raiseNotDefined()
+        self.value(gameState)
+        return self.action
 
 
 def betterEvaluationFunction(currentGameState):
