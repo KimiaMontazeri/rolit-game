@@ -274,6 +274,84 @@ class ExpectimaxAgent(MultiAgentSearchAgent):
         "*** YOUR CODE HERE ***"
         self.value(gameState)
         return self.action
+    
+
+def calcParity(state):
+    """
+    Returns the difference between each player's score
+    """
+    parity = 0
+    numOfAgents = state.getNumAgents()
+    if numOfAgents == 2:
+        parity = state.getScore(0) - state.getScore(1)
+    elif numOfAgents == 4:
+        parity = state.getScore(0) - (state.getScore(1) + state.getScore(2) + state.getScore(3))
+
+    return parity
+
+
+def calcCorners(state):
+    """
+    There is a high correlation between the number of corners captured by a player
+    and the player winning the game.
+    Capturing a majority of the corners, allows for greater stability to be built. 
+    Corners are 3 types: captured, potential, unlikely.
+
+    The corner heuristic involves counting the number of discs owned by the player 
+    in the corner squares in current and next state.
+    """
+    cornerValues = state.getCorners()
+    corners = 0
+    for value in cornerValues:
+        if value == 0:
+            corners += 1
+
+    return corners
+
+
+def calcMobility(state):
+    """
+    Returns the difference between number of our legal moves and the opponent's
+    legal moves for the given state
+
+    Calculating "Potential Mobility" (number of legal moves for current and future 
+    states) is a complex task. Here, we only calculate the "Actual Mobility".
+    """
+    numOfAgents = state.getNumAgents()
+    if numOfAgents == 2:
+        return len(state.getLegalActions(0)) - len(state.getLegalActions(1))
+
+    # 4 players
+    return len(state.getLegalActions(0)) - (len(state.getLegalActions(1)) + len(state.getLegalActions(2)) + len(state.getLegalActions(3)))
+
+
+def calcStability(state):
+    """
+    The stability measure of a coin is a quantitative representation of how 
+    vulnerable it is to being flanked.
+
+    In this implementation, I have defined stability as below:
+    A coin is stable if its inside a corner or an edge position.
+    (Specifically, a corner coin is classed as stable, and an edge coin is semi-stable)
+    
+    Returns the number of stable pieces that the agent has.
+    """
+    stablePositions = [(0, 0), (0, 7), (7, 0), (7, 7)]
+    # stablePositions = state.getCorners()
+    for i in range(1, 6):
+        stablePositions.append((0, i))  # top edge
+        stablePositions.append((7, i))  # bottom edge
+        stablePositions.append((i, 0))  # left edge
+        stablePositions.append((i, 7))  # right edge
+
+    stablePieces = 0
+    agentPiecesPositions = state.getPieces()
+    for pos in agentPiecesPositions:
+        if (pos in stablePositions):
+            stablePieces += 1
+    
+    return stablePieces
+
 
 
 def betterEvaluationFunction(currentGameState):
@@ -296,16 +374,42 @@ def betterEvaluationFunction(currentGameState):
     """
     
     "*** YOUR CODE HERE ***"
+    # Parity is a little bit greedy-ish... so we assign less weight to it 
+    # In this game, the score may change a lot in just 1 move.
+    # So, we can't rely too much on parity.
+    parityWeight = 1.0
+    cornersWeight = 5.0
+    mobilityWeight = 2.0
+    stabilityWeight = 3.0
 
     # parity
+    parity = calcParity(currentGameState)
 
     # corners
+    corners = calcCorners(currentGameState)
 
-    # mobility
+    # mobility: Calculating "Potential Mobility" (number of legal moves for current and future states) is a complex task. Here, we calculate the "Actual Mobility" (number of legal moves for just the current state) instead.
+    mobility = calcMobility(currentGameState)
 
-    # stability
-    
-    util.raiseNotDefined()
+    # stability: Number of stable disks
+    stability = calcStability(currentGameState)
+
+    # print(currentGameState.getPieces())
+    # print("parity: ", parity)
+    # print("mobility: ", mobility)
+    # print("corners: ", corners)
+    # print("stability: ", stability)
+
+    # Weighted Sum of all the heuristics
+    evaluation = (
+        parity * parityWeight
+        + mobility * mobilityWeight
+        + corners * cornersWeight
+        + stability * stabilityWeight
+    )
+
+    return evaluation
+
 
 # Abbreviation
 better = betterEvaluationFunction
