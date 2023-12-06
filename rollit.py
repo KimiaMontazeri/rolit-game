@@ -1,5 +1,6 @@
 import argparse
 import os
+import time
 os.environ['PYGAME_HIDE_SUPPORT_PROMPT'] = "1"
 
 from Agents import *
@@ -126,6 +127,12 @@ if __name__ == "__main__":
     state = get_state(args)
 
     game = Game(agents, display, state)
+    print('------------------ START ------------------')
+    print('STARTING THE GAME...')
+    start_time = time.time()
     game.run()
+    end_time = time.time()
+    elapsed_time = end_time - start_time
+    print(f'GAME ENDED In {elapsed_time:.5f}s.')
     
     
