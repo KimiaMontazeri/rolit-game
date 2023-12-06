@@ -151,6 +151,57 @@ class AlphaBetaAgent(MultiAgentSearchAgent):
     def __init__(self, *args, **kwargs) -> None:
         super().__init__(**kwargs)
 
+    
+    def minValue(self, state, depth, currentAgent, alpha, beta):
+        value = float("inf")
+        legalMoves = state.getLegalActions(currentAgent)
+        for action in legalMoves:
+            successor = state.generateSuccessor(currentAgent, action)
+            successorValue = self.value(successor, depth, currentAgent+1, alpha, beta)
+            value = min(successorValue, value)
+
+            if value < alpha:
+                return value
+            
+            beta = min(beta, value)
+        return value
+
+
+    def maxValue(self, state, depth, currentAgent, alpha, beta):
+        value = float("-inf")
+        legalMoves = state.getLegalActions(currentAgent)
+        for action in legalMoves:
+            successor = state.generateSuccessor(currentAgent, action)
+            successorValue = self.value(successor, depth, currentAgent+1, alpha, beta)
+            value = max(successorValue, value)
+
+            # In Minimax, we should store the first action that made us reach
+            # the best possible state (since minimax only returns the best value!)
+            if value == successorValue and depth == 1:
+                self.action = action
+            
+            if value > beta:
+                return value
+            
+            alpha = max(alpha, value)
+        return value
+
+
+    def value(self, state, depth=0, currentAgent=0, alpha=float("-inf"), beta=float("inf")):
+        # Ensuring that agent's index is not out of range
+        currentAgent = currentAgent % state.getNumAgents()
+
+        # We reach a terminal state or max depth
+        if depth == self.depth or state.isGameFinished():
+            return self.evaluationFunction(state)
+
+        # Actual Minimax Search
+        if currentAgent == self.index: # It's my turn
+            return self.maxValue(state, depth+1, currentAgent, alpha, beta)
+        else:
+            return self.minValue(state, depth+1, currentAgent, alpha, beta)
+
+
     def getAction(self, gameState):
         """
         Returns the minimax action using self.depth and self.evaluationFunction
@@ -158,7 +209,8 @@ class AlphaBetaAgent(MultiAgentSearchAgent):
         You should keep track of alpha and beta in each node to be able to implement alpha-beta pruning.
         """
         "*** YOUR CODE HERE ***"
-        util.raiseNotDefined()
+        self.value(gameState)
+        return self.action
         
 
 class ExpectimaxAgent(MultiAgentSearchAgent):
